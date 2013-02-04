@@ -54,12 +54,12 @@ class Chef
         puts "\n"
         confirm("Delete client and node for #{server.name}?")
         
-        node = Chef::Node.load(server.name)
+        node = Chef::Node.load(server.id + ".local")
         puts "deleting node #{node.name}"
         node.destroy
         ui.warn("Deleted node named #{node.name}")
         
-        client = Chef::ApiClient.load(server.name)
+        client = Chef::ApiClient.load(server.id + ".local")
         puts "deleting client #{client.name}"
         client.destroy
         ui.warn("Deleted client named #{client.name}")

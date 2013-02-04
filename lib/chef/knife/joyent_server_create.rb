@@ -223,7 +223,7 @@ class Chef
         bootstrap.config[:identity_file] = config[:identity_file]
 
         Chef::Log.debug("Bootstrap chef_node_name = #{config[:chef_node_name]}")
-        bootstrap.config[:chef_node_name] = config[:chef_node_name] || server.id
+        bootstrap.config[:chef_node_name] = config[:chef_node_name] || (server.id + ".local")
 
         Chef::Log.debug("Bootstrap prerelease = #{config[:prerelease]}")
         bootstrap.config[:prerelease] = config[:prerelease]
