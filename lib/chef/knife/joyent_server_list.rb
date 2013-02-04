@@ -39,6 +39,13 @@ module KnifeJoyent
 
         servers << s.type
         servers << s.dataset
+        ip_regex = Regexp.compile(
+          "127\\.0\\.0\\.1|" +
+          "10(?:\\.\\d{1,3}){3}|" +
+          "172\\.(?:1[6-9]|2\\d|3[01])(?:\\.\\d{1,3}){2}|" +
+          "192\\.168(?:\\.\\d{1,3}){2}"
+        )
+        s.ips.sort! {|a,b| ip_regex.match(a) ? 1 : -1 }
         servers << s.ips.join(" ")
         servers << "#{s.memory/1024} GB".to_s
         servers << "#{s.disk/1024} GB".to_s
