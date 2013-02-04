@@ -70,6 +70,12 @@ module KnifeJoyent
       :boolean => true,
       :default => false
 
+    option :private_ip,
+      :long => "--private-ip",
+      :description => "Use the private IP. Defaults to using the public IP.",
+      :boolean => true,
+      :default => false
+
     # wait for ssh to come up
     def tcp_test_ssh(hostname)
       tcp_socket = TCPSocket.new(hostname, 22)
@@ -141,7 +147,21 @@ module KnifeJoyent
           raise
         end
       end
-      
+
+      # This regex tests if an IP address is in a private range.
+      ip_regex = Regexp.compile(
+        "127\\.0\\.0\\.1|" +
+        "10(?:\\.\\d{1,3}){3}|" +
+        "172\\.(?:1[6-9]|2\\d|3[01])(?:\\.\\d{1,3}){2}|" +
+        "192\\.168(?:\\.\\d{1,3}){2}"
+      )
+
+      if config[:private_ip]
+        server.ips.sort! {|a,b| ip_regex.match(a) ? -1 : 1 }
+      else
+        server.ips.sort! {|a,b| ip_regex.match(a) ? 1 : -1 }
+      end
+
       puts ui.color("Created machine:", :cyan)
       msg("ID", server.id.to_s)
       msg("Name", server.name)
@@ -149,6 +169,7 @@ module KnifeJoyent
       msg("Type", server.type)
       msg("Dataset", server.dataset)
       msg("IP's", server.ips)
+
       puts ui.color("attempting to bootstrap on #{server.ips.first}", :cyan)
     
       print(".") until tcp_test_ssh(server.ips.first) {
