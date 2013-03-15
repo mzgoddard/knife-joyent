@@ -30,6 +30,13 @@ module KnifeJoyent
       :long => '--image IMAGE_ID',
       :description => 'specify image for the server'
 
+    option :tags,
+      :short => '-t TAG=VALUE,',
+      :long => '--tags TAG=VALUE,',
+      :description => 'Comma separated list of joyent tags for the server',
+      :proc => lambda { |o| Hash[*o.split(/[,=]/)] },
+      :default => Hash[]
+
     option :run_list,
       :short => "-r RUN_LIST",
       :long => "--run-list RUN_LIST",
@@ -133,10 +140,18 @@ module KnifeJoyent
     def run
       puts ui.color("Creating machine #{config[:chef_node_name]}", :cyan)
       begin
-        server = self.connection.servers.create(:dataset => config[:dataset],
-                                            :package => config[:package],
-                                            :name => config[:name])
-      server.wait_for { print "."; ready? }                                      
+        params = {
+          :dataset => config[:dataset],
+          :package => config[:package],
+          :name => config[:name]
+        }
+        if config[:tags].length
+          config[:tags].each do |key, value|
+            params['tag.' + key] = value
+          end
+        end
+        server = self.connection.servers.create(params)
+        server.wait_for { print "."; ready? }
       rescue => e
         Chef::Log.debug("e: #{e}")
         if e.response && e.response.body.kind_of?(String)
