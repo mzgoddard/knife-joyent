@@ -85,6 +85,13 @@ class Chef
         :proc => Proc.new { |m| JSON.parse(m) },
         :default => {}
 
+      option :joyent_tags,
+        :short => '-t TAG=VALUE,',
+        :long => '--tags TAG=VALUE,',
+        :description => 'Comma separated list of joyent tags for the server',
+        :proc => lambda { |o| Hash[*o.split(/[,=]/)] },
+        :default => Hash[]
+
       option :no_host_key_verify,
         :long => "--no-host-key-verify",
         :description => "Disable host key verification",
@@ -137,7 +144,7 @@ class Chef
           :name => node_name,
           :dataset => config[:dataset],
           :package => config[:package]
-        }.merge(joyent_metadata))
+        }.merge(joyent_metadata).merge(joyent_tags))
 
         puts ui.color("Waiting for Server to be Provisioned", :magenta)
         server.wait_for { print "."; ready? }
@@ -278,6 +285,18 @@ class Chef
 
         return {} if metadata.empty?
         Hash[metadata.map { |k, v| ["metadata.#{k}", v] }]
+      end
+
+      def joyent_tags
+        tags = Chef::Config[:knife][:joyent_tags] || {}
+
+        if config[:joyent_tags].length
+          config[:joyent_tags].each do |key,value|
+            tags['tag.' + key] = value
+          end
+        end
+
+        tags
       end
 
       def _tcp_test_ssh(hostname)

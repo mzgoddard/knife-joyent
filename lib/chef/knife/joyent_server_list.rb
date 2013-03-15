@@ -8,6 +8,14 @@ class Chef
 
       banner "knife joyent server list <options>"
 
+      option :machine_type,
+        :long => '--type TYPE',
+        :description => 'Type of Joyent machine. smart or virtual.'
+
+      option :tags,
+        :long => '--tags TAG=VALUE,',
+        :description => 'Joyent machine tags to sort for.'
+
       def run
         servers = [
           ui.color('ID', :bold),
@@ -21,7 +29,21 @@ class Chef
           ui.color('Tags', :bold)
         ]
 
-        self.connection.servers.sort do |a, b|
+        list_options = {
+          :type => config[:machine_type] ?
+            config[:machine_type] + 'machine' :
+            nil
+        }
+        if config[:tags] then
+          config[:tags].split(',').each do |a|
+            tag = a.split('=')
+            list_options['tag.' + tag[0]] = tag[1]
+          end
+        end
+
+        self.connection.servers.load(
+          self.connection.list_machines(list_options).body
+        ).sort do |a, b|
           (a.name || '') <=> (b.name || '')
         end.each do |s|
           servers << s.id.to_s
@@ -54,7 +76,28 @@ class Chef
           servers << s.tags.map { |k, v| "#{k}:#{v}" }.join(' ')
         end
 
-        puts ui.list(servers, :uneven_columns_across, 9)
+        if config[:format] != 'summary' then
+          # Reformat server output
+
+          # Arrays of server data
+          members = 8
+          servers = (0...(servers.length / members)).map do |i|
+            servers[(i * members)...((i + 1) * members)]
+          end
+
+          # Keys are the first array member.
+          keys = servers[0]
+
+          servers = servers[1..-1].map do |server|
+            Hash[(0...server.length).map do |i|
+              [keys[i], server[i]]
+            end]
+          end
+
+          ui.output(servers)
+        else
+          puts ui.list(servers, :uneven_columns_across, 8)
+        end
       end
     end
   end
