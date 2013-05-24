@@ -18,22 +18,29 @@ class Chef
 
       def run
         servers = [
-          ui.color('ID', :bold),
-          ui.color('Name', :bold),
-          ui.color('State', :bold),
-          ui.color('Type', :bold),
-          ui.color('Image', :bold),
-          ui.color('IPs', :bold),
-          ui.color('RAM', :bold),
-          ui.color('Disk', :bold),
-          ui.color('Tags', :bold)
+          'ID',
+          'Name',
+          'State',
+          'Type',
+          'Image',
+          'IPs',
+          'RAM',
+          'Disk',
+          'Tags'
         ]
 
-        list_options = {
-          :type => config[:machine_type] ?
-            config[:machine_type] + 'machine' :
-            nil
-        }
+        if config[ :format ] == 'summary' then
+          servers.map! do |key|
+            ui.color(key, :bold)
+          end
+        end
+
+        list_options = {}
+
+        if config[:machine_type]
+          list_options['type'] = config[:machine_type] + 'machine'
+        end
+
         if config[:tags] then
           config[:tags].split(',').each do |a|
             tag = a.split('=')
@@ -49,15 +56,19 @@ class Chef
           servers << s.id.to_s
           servers << s.name
 
-          servers << case s.state
-          when 'running'
-            ui.color(s.state, :green)
-          when 'stopping', 'provisioning'
-            ui.color(s.state, :yellow)
-          when 'stopped'
-            ui.color(s.state, :red)
+          servers << if config[:format] != 'summary' then
+            s.state or 'unknown'
           else
-            ui.color('unknown', :red)
+            case s.state
+            when 'running'
+              ui.color(s.state, :green)
+            when 'stopping', 'provisioning'
+              ui.color(s.state, :yellow)
+            when 'stopped'
+              ui.color(s.state, :red)
+            else
+              ui.color('unknown', :red)
+            end
           end
 
           ip_regex = Regexp.compile(
@@ -96,7 +107,7 @@ class Chef
 
           ui.output(servers)
         else
-          puts ui.list(servers, :uneven_columns_across, 8)
+          puts ui.list(servers, :uneven_columns_across, 9)
         end
       end
     end

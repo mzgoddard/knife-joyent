@@ -140,11 +140,18 @@ class Chef
 
         puts ui.color("Creating machine #{node_name}", :cyan)
 
-        server = connection.servers.create({
+        puts Hash[
           :name => node_name,
           :dataset => config[:dataset],
           :package => config[:package]
-        }.merge(joyent_metadata).merge(joyent_tags))
+        ].merge(joyent_metadata).merge(joyent_tags)
+        # exit
+
+        server = connection.servers.create(Hash[
+          :name => node_name,
+          :dataset => config[:dataset],
+          :package => config[:package]
+        ].merge(joyent_metadata).merge(joyent_tags))
 
         puts ui.color("Waiting for Server to be Provisioned", :magenta)
         server.wait_for { print "."; ready? }
@@ -159,22 +166,34 @@ class Chef
         Chef::Log.debug("Bootstrap IP Address #{bootstrap_ip}")
         puts "\n"
         puts ui.color("Bootstrap IP Address #{bootstrap_ip}", :cyan)
+
+        base_tags = Hash[
+          joyent_tags.map {|k,v| [k.split('.')[1], v]}
+        ]
         if Chef::Config[:knife][:provisioner]
           # tag the provision with 'provisioner'
           tagkey = 'provisioner'
           tagvalue = Chef::Config[:knife][:provisioner]
+          base_tags[tagkey] = tagvalue
+        else
+          puts ui.color("No user defined in knife config for provision tagging -- continuing", :magenta)
+        end
+
+        if not base_tags.empty?
           tags = [
             ui.color('Name', :bold),
             ui.color('Value', :bold),
           ]
-          server.add_tags({tagkey => tagvalue}).each do |k, v|
+
+          server.add_tags(base_tags)
+
+          base_tags.each do |k, v|
             tags << k
             tags << v
           end
+
           puts ui.color("Updated tags for #{node_name}", :cyan)
           puts ui.list(tags, :uneven_columns_across, 2)
-        else
-          puts ui.color("No user defined in knife config for provision tagging -- continuing", :magenta)
         end
 
         puts ui.color("Created machine:", :cyan)
@@ -289,14 +308,9 @@ class Chef
 
       def joyent_tags
         tags = Chef::Config[:knife][:joyent_tags] || {}
+        tags.merge!(config[:joyent_tags])
 
-        if config[:joyent_tags].length
-          config[:joyent_tags].each do |key,value|
-            tags['tag.' + key] = value
-          end
-        end
-
-        tags
+        Hash[tags.map { |k, v| ["tag.#{k}", v] }]
       end
 
       def _tcp_test_ssh(hostname)
