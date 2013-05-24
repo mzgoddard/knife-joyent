@@ -91,7 +91,7 @@ class Chef
           # Reformat server output
 
           # Arrays of server data
-          members = 8
+          members = 9
           servers = (0...(servers.length / members)).map do |i|
             servers[(i * members)...((i + 1) * members)]
           end
