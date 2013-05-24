@@ -23,7 +23,9 @@ class Chef
           ui.color('Value', :bold),
         ]
 
-        self.connection.servers.get(server).add_tags({tagkey => tagvalue}).each do |k, v|
+        newTags = {tagkey => tagvalue}
+        self.connection.servers.get(server).add_tags(newTags)
+        newTags.each do |k, v|
           tags << k
           tags << v
         end
